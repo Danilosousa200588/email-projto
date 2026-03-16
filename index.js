@@ -1,21 +1,41 @@
 const express = require("express");
-const { PrismaClient } = require("@prisma/client");
+const mysql = require("mysql2/promise");
 
 const app = express();
-const prisma = new PrismaClient();
-
 app.use(express.json());
 
-app.get("/users", async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
+const pool = mysql.createPool({
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT
 });
 
-app.post("/users", async (req, res) => {
-  const { name, email } = req.body;
-  const user = await prisma.user.create({ data: { name, email } });
-  res.json(user);
+app.get("/", (req,res)=>{
+ res.send("API funcionando");
+});
+
+app.get("/emails", async (req,res)=>{
+ const [rows] = await pool.query("SELECT * FROM emails");
+ res.json(rows);
+});
+
+app.post("/emails", async (req,res)=>{
+
+ const {name,email} = req.body;
+
+ await pool.query(
+  "INSERT INTO emails (name,email) VALUES (?,?)",
+  [name,email]
+ );
+
+ res.json({sucesso:true});
+
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, ()=>{
+ console.log("Servidor rodando");
+});
